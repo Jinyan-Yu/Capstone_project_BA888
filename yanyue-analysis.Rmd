@@ -1,0 +1,32 @@
+---
+title: "yanyuefu"
+author: "YanyueFu (U41816127)"
+date: "2/12/2020"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(readr)
+library(dplyr)
+library(lubridate)
+library(tidyverse)
+data = read_csv("uberresource.csv")
+```
+
+1. First we should delete the X1 and the surgemultiple because all the surge equals to 1.
+```{r}
+table(data$surge_multiplier)
+data$surge_multiplier = NULL
+data$X1 = NULL
+```
+
+2.
+```{r}
+rev_per_hour =data %>% select(hour, price) %>% group_by(hour) %>% count() %>% rename(revenue = n)
+
+rev_per_hour %>% ggplot(aes(hour, revenue)) +
+  geom_line()
+
+```
+

@@ -1,0 +1,92 @@
+---
+title: "BA888 Capstone Project"
+author: "Team 1"
+date: "2/13/2020"
+output:
+  pdf_document: default
+  html: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(readr)
+library(tidyverse)
+library(plotly)
+library(ggplot2)
+library(ggpubr)
+```
+
+```{r}
+uber = read_csv("uber_cleandata_with_weather.csv")
+total = read_csv("total_cleandata_with_weather.csv")
+glimpse(uber)
+head(uber,10)
+```
+
+Team 1 discusses about how location and weather refects uber price and try to find how what we found will affect some industy like hotel, which have connections with ordering service. Our data has 39 variables and 330568 rows, which have four different categories data: time, location, price and weather infomation. 
+```{r}
+ggplot(uber)+
+  geom_bar(aes(x=hour,y=car_type,fill=car_type),stat='identity')+
+  ylab("amount of differnt types of car")+
+  ggtitle("Car's demand for different hour")
+ggplot(uber,aes(x=short_summary,y=car_type,fill=car_type))+
+  geom_bar(stat='identity')+
+  ylab("amount of differnt types of car")+
+  ggtitle("Car's demand for different weather")
+```
+From first chart we can see highest car demand during 11pm and 12am, and the second higher demand for cars is around 10am and 5pm. The second chart we can see the highest car demand on weather on partly cloudy and cloudy, and people have too much demand on good weather of rainy day. We can also see most popular car is WAV, which uber drivers provide affordable rides in wheelchair. Even though most user don't know whether their car provide wheelchair, but most of them order cars with this service. The second most popular cartype is UberXL. 
+
+```{r}
+ggplot(uber,aes(x=hour,y=car_type,fill=car_type))+
+  geom_bar(stat='identity')+
+  facet_wrap(~short_summary)
+```
+
+```{r}
+## price and car amount change during 24h
+uber %>% select(price,hour,short_summary) %>% group_by(hour) %>% 
+  mutate(avg_price=mean(price)) %>% 
+  ggplot()+ 
+  labs(title = "Price change during the day")+
+  geom_smooth(aes(x=hour,y=avg_price),na.rm = FALSE, se = TRUE)
+uber %>% select(hour,car_type,short_summary) %>% group_by(hour) %>% 
+  mutate(count=n()) %>% 
+  ggplot() + 
+  geom_smooth(aes(x=hour,y=count),na.rm = FALSE, se = TRUE)+
+  labs(y="car's amount",title = "car's requirement change during the day")
+```
+
+
+```{r}
+uber %>% select(price,hour,short_summary) %>% group_by(hour) %>% 
+  mutate(avg_price=mean(price)) %>% 
+  ggplot()+
+  geom_line(aes(x=hour,y=avg_price))+
+  facet_wrap(~short_summary)
+```
+
+
+```{r}
+total %>% select(price,hour,short_summary) %>% group_by(hour) %>% 
+  mutate(avg_price=mean(price)) %>% 
+  ggplot()+
+  geom_line(aes(x=hour,y=avg_price))+
+  facet_wrap(~short_summary)
+```
+
+```{r}
+uber_temperature = uber %>% select(hour,car_type,price,temperature,apparentTemperature,temperatureHigh,temperatureLow,apparentTemperatureHigh,apparentTemperatureLow)
+uber_temperature %>% 
+  ggplot() + 
+  geom_smooth(aes(x=apparentTemperature,y=price),se=F,col="green")+
+  facet_wrap(~hour)
+uber_temperature %>% 
+  ggplot() + 
+  geom_smooth(aes(x=temperature,y=price),se=F,col="red")+
+  facet_wrap(~hour)
+```
+
+

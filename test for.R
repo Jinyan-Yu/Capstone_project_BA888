@@ -1,23 +1,34 @@
 library(tidyverse)
-uber <- read_csv("rideshare_kaggle.csv")
+library(dplyr)
+uber <- read_csv("uberresource.csv")
+#View(uber)
+
+#uber %>% group_by(destination) %>% count()
+#uber %>% group_by(source) %>% count()
+
+uber$route = paste(uber$source, uber$destination, sep = "_")
 View(uber)
-uber <- uber %>% filter(cab_type=="Uber")
 
 
-uber %>% group_by(destination) %>% count()
-uber %>% group_by(source) %>% count()
-
-uber=uber %>% unite(route, source, destination, sep = "_", remove = TRUE, na.rm = FALSE)
+a=grep(uber$route,pattern = "University")
+uber$school = ifelse(uber$X1  %in%  a, 1, 0)
 
 
-n <- sample(1:nrow(uber), 0.8 * nrow(uber))
+set.seed(777)
+n <- sample(1:nrow(uber), 0.7 * nrow(uber))
 
-uber = uber[n,]
-
-uber %>% group_by(route) %>% count(sort = TRUE)
-
-
+uber_train = uber[n,]
+uber_test = uber[-n,]
 
 
-test =uber %>% filter(route == "Financial District_South Station")
-nrow(test)
+uber_train %>% group_by(route) %>% count(sort = TRUE)
+
+write_csv(uber_train, "training set")
+write_csv(uber_test, "test set")
+
+
+View(uber_train)
+
+
+
+

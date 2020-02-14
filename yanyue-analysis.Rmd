@@ -19,13 +19,18 @@ data = read_csv("uberresource.csv")
 table(data$surge_multiplier)
 data$surge_multiplier = NULL
 data$X1 = NULL
+data
+```
+
+```{r}
+write_csv(data, "yanyuecleaned.csv")
 ```
 
 2.
 ```{r}
-rev_per_hour =data %>% select(hour, price) %>% group_by(hour) %>% count() %>% rename(revenue = n)
+rev_per_hour =data %>% select(hour, price,name) %>% group_by(hour, name) %>% count() %>% rename(revenue = n)
 
-rev_per_hour %>% ggplot(aes(hour, revenue)) +
+rev_per_hour %>% ggplot(aes(hour, revenue,color = name)) +
   geom_line()
 
 ```

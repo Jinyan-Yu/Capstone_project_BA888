@@ -11,7 +11,7 @@ library(readr)
 library(dplyr)
 library(lubridate)
 library(tidyverse)
-data = read_csv("uberresource.csv")
+data = read_csv("uber_cleandata_with_weather.csv")
 ```
 
 1. First we should delete the X1 and the surgemultiple because all the surge equals to 1.
@@ -28,10 +28,20 @@ write_csv(data, "yanyuecleaned.csv")
 
 2.
 ```{r}
-rev_per_hour =data %>% select(hour, price,name) %>% group_by(hour, name) %>% count() %>% rename(revenue = n)
+rev_per_hour =data %>% select(hour, price,car_type) %>% group_by(hour, car_type) %>% count() %>% rename(revenue = n)
 
-rev_per_hour %>% ggplot(aes(hour, revenue,color = name)) +
+rev_per_hour %>% ggplot(aes(hour, revenue,color = car_type)) +
   geom_line()
 
+```
+
+```{r}
+length(unique(data$latitude))
+length(unique(data$longitude))
+```
+```{r}
+unique(data$temperature)
+data %>% filter(car_type =="Black") %>% count() 
+data %>% filter(car_type =="UberXL") %>% count()
 ```
 

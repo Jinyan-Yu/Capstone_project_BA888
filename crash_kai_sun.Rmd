@@ -1,0 +1,178 @@
+---
+title: "Untitled"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r}
+library(tidyverse)
+library(data.table)
+library(dplyr)
+library(lubridate)
+ library(ggplot2)
+
+
+
+
+```
+
+
+```{r}
+crash <- fread("crash.csv")
+
+#View(crash)
+
+crash = crash %>% 
+  separate("Crash_Date", sep="-", into=c("day", "month", "year"))
+
+crash_2018=crash %>% filter(year==2018)
+
+crash_2018=crash_2018 %>% filter(month==c("Nov", "Dec"))
+
+
+crash_2018$date <- paste(crash_2018$month, crash_2018$day, sep="-")
+
+#View(crash_2018)
+
+
+crash_2018_NovDec=crash_2018 %>% filter(date %in%  c("Nov-26", "Nov-27", "Nov-28", "Nov-29", "Nov-30", "Dec-01", 
+"Dec-02","Dec-03",  "Dec-04", "Dec-09",  "Dec-10",  "Dec-13",  
+"Dec-14",  "Dec-15",  "Dec-16",  "Dec-17",  "Dec-18"))
+
+
+#View(crash_2018_NovDec)
+write_csv(crash_2018_NovDec, "crash_based_on_uber_date.csv")
+
+
+```
+
+
+
+```{r}
+unique(crash$Vehicle_Travel_Directions)
+
+crash_direction=crash %>%
+  filter(str_detect(Vehicle_Travel_Directions, "Not", negate = TRUE))
+
+crash_direction=crash_direction %>%
+  filter(str_detect(Vehicle_Travel_Directions, "but", negate = TRUE))
+
+
+
+
+unique(crash_direction$Vehicle_Travel_Directions)
+
+
+unique(crash_direction$Manner_of_Collision)
+
+
+
+crash_direction %>% 
+  group_by(Vehicle_Travel_Directions, Manner_of_Collision) %>% 
+  summarise(number_of_collision = n()) %>% 
+  ggplot(aes(x = Vehicle_Travel_Directions, y=number_of_collision, fill=Manner_of_Collision )) + 
+  geom_col(position = "fill") 
+
+
+
+```
+
+
+About the collision, the first is fata injury based on different manners of collision. As we can see from the graph, most of the people dead because of single vehicle crash, while angle crash is also serious (except not reported one).
+
+
+```{r}
+crash %>% group_by(Manner_of_Collision) %>% 
+  summarise(dead  = sum (Total_Fatal_Injuries)) %>%
+  mutate(Manner_of_Collision = reorder(Manner_of_Collision,dead)) %>% 
+  ggplot( aes(x=Manner_of_Collision, y=dead))+
+  geom_bar(stat = "identity", fill="red")+
+   coord_flip()
+```
+
+
+
+
+And next is non-fata injury based on different manners of collision. From the bar chart, most people got hurt as a result of rear-end crash while angle crash still stood on the second. Moreover, in this situation, single-vehicle-crash takes a part that cannot be ignored, too.
+
+Therefore, no matter if people died or got injury in a car accident, rear-end crash and angle crash is something we can't underestimate. 
+
+```{r}
+crash %>% group_by(Manner_of_Collision) %>% 
+  summarise(non_fatal_injury  = sum (Total_Nonfatal_Injuries)) %>% 
+  mutate(Manner_of_Collision = reorder(Manner_of_Collision,non_fatal_injury)) %>% 
+  ggplot( aes(x=Manner_of_Collision, y=non_fatal_injury))+
+  geom_bar(stat = "identity", fill= "blue")+
+   coord_flip()
+```
+
+
+
+
+
+
+Next is based on different collision manners, how many injuries happened including fate injuries and non-fate injuries.
+
+
+
+```{r}
+#crash$dead_or_injury = crash$Total_Nonfatal_Injuries+crash$Total_Fatal_Injuries
+
+
+#crash %>% group_by(Manner_of_Collision) %>% 
+ # summarise(dead_or_injury_number  = sum (dead_or_injury)) %>% 
+  #ggplot( aes(x=Manner_of_Collision, y=dead_or_injury_number))+
+  #geom_bar(stat = "identity",  color = "yellow", fill = "black")+
+  # coord_flip()
+```
+
+
+
+
+Next is based on different collision manners, how many injuries happened including fate injuries and non-fate injuries while for fate and non-fate, there is a weight. For fate injury, it multiply.
+
+
+```{r}
+#crash$dead_or_injury_weighted = crash$Total_Nonfatal_Injuries+crash$Total_Fatal_Injuries*100
+
+
+#crash %>% group_by(Manner_of_Collision) %>% 
+  #summarise(dead_or_injury_weighted_number  = sum (dead_or_injury_weighted)) %>% 
+  #ggplot( aes(x=Manner_of_Collision, y=dead_or_injury_weighted_number))+
+  #geom_bar(stat = "identity", color = "blue", fill = "black")+
+   #coord_flip()
+```
+
+
+
+```{r}
+unique(crash$Crash_Severity)
+```
+
+
+Based on Massachussets car accident classification， from the top to down in severity is respectively 'fatal', 'incapaciting', 'non-capaciting', 'possible', 'no injury' and 'unknow'. From our dataset, we have 'Fatal injury', 'Non-fatal injury' and 'Property damage only (none injured)', which can match the classification, and we give them rating like 6, 4 and 2. For 'unknow' and 'not reported', we give them 0 score. Based on this weight system, we can know how each manner of collison look like. 
+```{r}
+crash <- crash %>%
+    mutate(rate = case_when(Crash_Severity == "Fatal injury"   ~ 6,
+                            Crash_Severity == "Non-fatal injury" ~ 4,
+                            Crash_Severity ==  "Property damage only (none injured)"   ~ 2,
+                            Crash_Severity == "Unknown"     ~ 0,
+                            Crash_Severity ==  "Not Reported"   ~ 0
+                                 ))
+
+View(crash)
+
+
+
+crash %>% group_by(Manner_of_Collision) %>% 
+  summarise( severity_score = sum(rate)) %>%
+  mutate(Manner_of_Collision = reorder(Manner_of_Collision,severity_score)) %>% 
+  ggplot(aes(x=Manner_of_Collision, y=severity_score))+
+  geom_bar(stat="identity", color = "white", fill = "black")+
+   coord_flip()
+
+
+
+```
+

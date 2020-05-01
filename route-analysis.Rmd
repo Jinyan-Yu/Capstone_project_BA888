@@ -1,0 +1,145 @@
+---
+title: "routine"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r}
+library(tidyverse)
+library(dplyr)
+uber <- read_csv("uberresource.csv")
+
+#uber %>% group_by(destination) %>% count()
+#uber %>% group_by(source) %>% count()
+
+uber$route = paste(uber$source, uber$destination, sep = "_")
+View(uber)
+
+
+a=grep(uber$route,pattern = "University")
+uber$school = ifelse(uber$X1  %in%  a, 1, 0)
+
+
+b = grep(uber$route,pattern = "Financial")
+uber$finance = ifelse(uber$X1  %in%  b, 1, 0)
+
+
+
+set.seed(777)
+n <- sample(1:nrow(uber), 0.7 * nrow(uber))
+
+uber_train = uber[n,]
+uber_test = uber[-n,]
+
+write_csv(uber_train, "training set")
+write_csv(uber_test, "test set")
+
+
+uber$date <- paste(uber$month, uber$day, sep="-") 
+table(uber$date)
+```
+
+
+```{r}
+ uber_train %>% group_by(route) %>% 
+  tally() %>% 
+  mutate(route = reorder(route,n)) %>%
+  head(12) %>% 
+ggplot(aes(x=route, y=n))+
+  geom_bar(stat="identity")+ 
+  coord_flip()
+
+```
+
+
+We all know that routine can tell us a lot of things, like which place is the most busy or attractive in Boston. In our dataset, there are 12 starting points in Boston downtown and 12 destination, which are all famous places like BU, NEU and Fenway Park. We make them connected and draw barchart using ggplot to check which is the busy line. There are totally 144 routines and from the graph we can see the most famous twelve ones.
+
+
+We are students from BU, so when we see BU and NEU as the sesouce and destination, we feel familiar with that kind of routine. Now we check which kind of uber is the most to be called for university-related routine (assume most are students and university staff), and how is the price determined. 
+
+
+```{r}
+school_zone = uber_train %>% filter(school==1)
+
+
+ school_zone_situation<- school_zone %>% 
+   group_by(name) %>% 
+summarise(Count = n(), price=mean(price))
+
+   
+   
+   ggplot(school_zone_situation, aes(x = name, y = price)) +
+  geom_bar(stat = "identity") 
+   
+    ggplot(school_zone_situation, aes(x = name, y = Count)) +
+  geom_bar(stat = "identity") 
+ 
+```
+
+
+After the visulazation, we can clearly see that although the price of different type of cars are totally different, for the students, they don't care about the fee because they choose cars almost the same.
+
+
+Now, we want to see the diffenece between mean price of university-related and non-university-related route since we thought maybe most students cannot afford high price. And we can see from the graph that in the most costly routine, about half of them are to or from university, so we cannot say students pay less when calling uber.
+
+```{r}
+#uber_train %>% 
+  #ggplot(aes(x=route, y=mean(price), color=school))+
+  #geom_bar(stat = "identity")+ 
+  #coord_flip()
+
+
+
+
+uber_train %>% group_by(route) %>% 
+  summarise(mean_price = mean(price)) %>% 
+  mutate(route = reorder(route,mean_price)) %>% 
+  head(15) %>% 
+  ggplot(aes(x=route, y=mean_price))+
+  geom_bar(stat = "identity")+ 
+  coord_flip()
+
+
+```
+
+
+Although students spend a lot money in diffenent type of uber (we can say maybe there are many rich students), from the plot( darker represent non-students and lighter is students), the average fee paid by non-students is still greater, which is not surprising.
+
+
+And also, another kind of people deserved to be checked is financial people, since most of us are from financial major and cares about the salary of financial district.
+
+
+
+```{r}
+finance_zone = uber_train %>% filter(finance==1)
+
+
+ finance_zone_situation<- finance_zone %>% 
+   group_by(name) %>% 
+summarise(Count = n(), price=mean(price))
+
+   
+   
+   ggplot(finance_zone_situation, aes(x = name, y = price)) +
+  geom_bar(stat = "identity") 
+   
+    ggplot(finance_zone_situation, aes(x = name, y = Count)) +
+  geom_bar(stat = "identity") 
+ 
+```
+ 
+ 
+The same as students group, financial people still don't have a obvious preference for any kind of uber, which denys the doubt that financial people are decent and like luxury cars.
+
+
+
+
+```{r}
+uber_train %>% 
+  ggplot(aes(x=route, y=mean(price), color=finance))+
+  geom_bar(stat = "identity")+ 
+  coord_flip()
+```
+
+But we can notice that for financial people, the average spend on uber is obviously greater than the other people (the ligher are financial people).

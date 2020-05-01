@@ -2,13 +2,14 @@
 title: "BA888 Capstone Project"
 author: "Team 1"
 date: "2/13/2020"
-output:
-  pdf_document: default
-  html: default
+output: html_document
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r include=FALSE}
 library(readr)
 library(tidyverse)
 library(plotly)
@@ -20,6 +21,7 @@ library(ggpubr)
 uber = read_csv("uber_cleandata_with_weather.csv")
 glimpse(uber)
 head(uber,10)
+dim(uber)
 ```
 
 Team 1 discusses about how location and weather refects uber price and try to find how what we found will affect some industy like hotel, which have connections with ordering service. Our data has 39 variables and 330568 rows, which have four different categories data: time, location, price and weather infomation. 
@@ -65,7 +67,6 @@ uber %>% select(price,hour,short_summary) %>% group_by(hour) %>%
 ```
 
 
-
 ```{r}
 uber_temperature = uber %>% select(hour,car_type,price,temperature,apparentTemperature,temperatureHigh,temperatureLow,apparentTemperatureHigh,apparentTemperatureLow)
 uber_temperature %>% 
@@ -76,6 +77,32 @@ uber_temperature %>%
   ggplot() + 
   geom_smooth(aes(x=temperature,y=price),se=F,col="red")+
   facet_wrap(~hour)
+```
+
+```{r}
+combine <- uber
+combine$rainlevel <- combine$precipIntensity
+combine$rainlevel[combine$rainlevel>2] <- "Extreme Heavy Rainstorm";
+combine$rainlevel[combine$rainlevel==0] <- "No Rain";combine$rainlevel[combine$rainlevel>0 &combine$rainlevel < 0.01] <- "Drizzle";
+combine$rainlevel[combine$rainlevel>=0.01 &combine$rainlevel < 0.1] <- "Light Rain";
+combine$rainlevel[combine$rainlevel>=0.1 &combine$rainlevel < 0.25] <- "Moderate Rain";
+combine$rainlevel[combine$rainlevel>=0.25 &combine$rainlevel < 0.5] <- "Heavy Rain";
+combine$rainlevel[combine$rainlevel>=0.5 &combine$rainlevel < 1] <- "Rain Storm";
+combine$rainlevel[combine$rainlevel>=1 &combine$rainlevel < 2] <- "Heavy Rain Storm"
+combine$rainlevel
+
+combine1 <- combine %>% filter(rainlevel=="Light Rain")
+
+combine1 %>% group_by(hour) %>% mutate(avg_price=mean(price)) %>% 
+  select(hour,avg_price) %>% unique() %>% 
+  ggplot(aes(x=factor(hour),y=avg_price))+
+  geom_bar(stat = "identity")
+
+```
+
+```{r}
+combine$speific <- if_else(combine$hour==c(8,13,16) & combine$rainlevel=="Light Rain", "rush","no rush")
+colnames(combine)
 ```
 
 

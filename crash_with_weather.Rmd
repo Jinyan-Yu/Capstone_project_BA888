@@ -1,0 +1,99 @@
+---
+title: "Crash with weather"
+author: "Jinyan Yu"
+date: "2/27/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+### Car crush with weather
+```{r}
+library(data.table)
+library(tidyverse)
+```
+
+```{r}
+crash <- fread("crush_with_weather.csv")
+crash <- crash %>% select(-c("V1"))   
+glimpse(crash)
+colnames(crash)
+unique(crash$year)
+```
+
+```{r}
+crash %>% select(Crash_Severity,rainlevel) %>% filter(rainlevel != "No Rain")%>% group_by(rainlevel) %>% 
+  ggplot(aes(x=rainlevel,fill=Crash_Severity))+
+  geom_bar()+
+  labs(title = "Rain level affects car crash",
+       y="Number of Crush")+
+  theme(axis.text.x = element_text(angle = 90))
+```
+
+```{r}
+crash %>% select(Maximum_Injury_Severity_Reported,Road_Surface_Condition) %>% group_by(Road_Surface_Condition) %>% 
+  ggplot(aes(x=Road_Surface_Condition,fill=Maximum_Injury_Severity_Reported))+
+  geom_bar()+
+  labs(title = "How road surface conditions cause major injury in car crash?",
+       y="Number of Crush")+
+  theme(axis.text.x = element_text(angle = 90))
+```
+
+```{r}
+crash %>% select(Crash_Time,rainlevel) %>% group_by(Crash_Time) %>%count()
+
+crash %>% select(Crash_Time,rainlevel) %>% filter(rainlevel != "No Rain") %>% 
+  group_by(rainlevel) %>% 
+  ggplot(aes(x=Crash_Time))+
+  geom_bar()+
+  facet_wrap(~rainlevel)+
+  labs(title = "Car crash happens at different time for different rain level",
+       y="num of car crash")
+  
+```
+
+```{r}
+crash %>% select(Manner_of_Collision,rainlevel,Crash_Time) %>% filter(rainlevel != "No Rain") %>% 
+  ggplot(aes(x=rainlevel,fill=Manner_of_Collision))+
+  geom_bar()+
+  theme(axis.text.x = element_text(angle = 90))+
+  labs(title = "Rain level affects manner of collision",
+       y="num of accidents")
+  
+```
+```{r}
+crash %>% group_by(month) %>% summarise( dead= sum(Total_Fatal_Injuries)) %>% ggplot(aes(x=factor(month), y=dead))+ geom_bar(stat="identity", fill="blue")+coord_flip()+
+  labs(title = "Death in car crash on each month",
+       x="month")
+  
+```
+
+```{r}
+new <- crash %>% filter(rainlevel=="Light Rain")
+new1 <- new %>% select(Crash_Time,rainlevel) %>% group_by(Crash_Time) %>%count()
+new1$percent <- new1$n/sum(new1$n)
+new1$high <- if_else(new1$percent>0.057,"high","low")
+new1 %>% ggplot(aes(x=factor(Crash_Time), y=percent,fill=high ))+ 
+  geom_bar(stat = "identity")+
+  labs(title = "The chance of car crash hapened during the day time",
+       x="day time",
+       y="percentage")
+  
+  
+  
+new1
+``` 
+
+```{r}
+new2 <- new %>% filter(Crash_Time == c(8,13,16))
+new3 <- new2 %>% group_by(Manner_of_Collision) %>% count()
+new3$percent <- new3$n/sum(new3$n)
+new3 %>% ggplot(aes(x=Manner_of_Collision, y=percent,fill=Manner_of_Collision ))+ 
+  geom_bar(stat = "identity")
+```
+
+
+

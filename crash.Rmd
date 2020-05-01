@@ -1,0 +1,106 @@
+---
+title: "car_crush"
+author: "Jinyan_Yu"
+date: "2/27/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r include=FALSE}
+library(data.table)
+```
+
+```{r}
+crash <- fread("crash-updated.csv") #change
+weather <- fread("Boston weather_clean.csv")
+dim(weather)
+dim(crash)
+unique(weather$Year)
+```
+
+
+```{r}
+crash_new <- crash %>% filter(year==c("2008","2009","2010","2011","2012","2013","2014","2015","2016","2017"))
+weather_new <- weather %>% filter(Year != c("2018"))
+colnames(weather_new)[1]=c("year")
+colnames(weather_new)=tolower(colnames(weather_new))
+colnames(weather_new) <- gsub(" ","_",colnames(weather_new))
+
+crash_new$month <- ifelse(crash_new$month=="Jan",1,crash_new$month)
+crash_new$month <- ifelse(crash_new$month=="Feb",2,crash_new$month)
+crash_new$month <- ifelse(crash_new$month=="Mar",3,crash_new$month)
+crash_new$month <- ifelse(crash_new$month=="Apr",4,crash_new$month)
+crash_new$month <- ifelse(crash_new$month=="May",5,crash_new$month)
+crash_new$month <- ifelse(crash_new$month=="Jun",6,crash_new$month)
+crash_new$month <- ifelse(crash_new$month=="Jul",7,crash_new$month)
+crash_new$month <- ifelse(crash_new$month=="Aug",8,crash_new$month)
+crash_new$month <- ifelse(crash_new$month=="Sep",9,crash_new$month)
+crash_new$month <- ifelse(crash_new$month=="Oct",10,crash_new$month)
+crash_new$month <- ifelse(crash_new$month=="Nov",11,crash_new$month)
+crash_new$month <- ifelse(crash_new$month=="Dec",12,crash_new$month)
+crash_new$month <- as.integer(crash_new$month)
+
+combine <- left_join(crash_new,weather_new,by=c("year","day","month"))
+
+time_temp <- strptime(combine$Crash_Time, "%I:%M %p")
+time=lubridate::hour(time_temp)
+
+combine$Crash_Time=time
+
+
+dim(combine)
+
+crush_weather <- combine %>% select(-c("Most_Harmful_Events","Vehicle_Configuration","At_Roadway_Intersection","Distance_From_Nearest_Exit","Distance_From_Nearest_Landmark","Non_Motorist_Type","high_temp_(f)","low_temp_(f)","high_dew_point_(f)","low_dew_point_(f)" ,"high_humidity_(%)","low_humidity_(%)","high_wind_(mph)","high_sea_level_press_(in)","low_sea_level_press_(in)","high_visibility_(mi)","low_visibility_(mi)","events"))
+
+```
+
+```{r}
+unique(crush_weather$Road_Surface_Condition)
+colnames(combine)
+```
+
+```{r}
+dim(combine)
+unique(crush_weather$`precip_(in)`)
+combine$rain_situation <- combine$`precip_(in)`
+combine$rain_situation <- ifelse(combine$rain_situation==0,"No Rain",combine$rain_situation) 
+combine$period=combine$Crash_Time
+
+combine$period[combine$period>=0 & combine$period<6] <- "dawn"; combine$period[combine$period>=12 & combine$period<18] <- "afternoon";combine$period[combine$period>=18 & combine$period<=24] <- "evening";combine$period[combine$period>=6 & combine$period<12] <- "morning";
+
+
+combine$period <- ifelse(combine$period=="6","morning",combine$period)
+combine$period <- ifelse(combine$period=="7","morning",combine$period)
+combine$period <- ifelse(combine$period=="8","morning",combine$period)
+combine$period <- ifelse(combine$period=="9","morning",combine$period)
+combine$period <- ifelse(combine$period=="10","morning",combine$period)
+combine$period <- ifelse(combine$period=="11","morning",combine$period)
+
+combine$rainlevel <- combine$`precip_(in)`
+combine$rainlevel[combine$rainlevel>2] <- "Extreme Heavy Rainstorm";
+combine$rainlevel[combine$rainlevel==0] <- "No Rain";combine$rainlevel[combine$rainlevel>0 &combine$rainlevel < 0.01] <- "Drizzle";
+combine$rainlevel[combine$rainlevel>=0.01 &combine$rainlevel < 0.1] <- "Light Rain";
+combine$rainlevel[combine$rainlevel>=0.1 &combine$rainlevel < 0.25] <- "Moderate Rain";
+combine$rainlevel[combine$rainlevel>=0.25 &combine$rainlevel < 0.5] <- "Heavy Rain";
+combine$rainlevel[combine$rainlevel>=0.5 &combine$rainlevel < 1] <- "Rain Storm";
+combine$rainlevel[combine$rainlevel>=1 &combine$rainlevel < 2] <- "Heavy Rain Storm"
+unique(combine$period)
+ 
+colnames(combine)[1]="id"
+write.csv(combine,file = "crush_with_weather.csv")
+```
+
+```{r}
+crash %>% group_by(day) %>% summarise( dead= sum(Total_Fatal_Injuries)) %>% ggplot(aes(x=day, y=dead))+ geom_bar(stat="identity", fill="blue")+coord_flip()+
+  labs(title = "Death in each day for Car Crash")
+```
+```{r}
+crash %>%group_by(month) %>% summarise( dead= sum(Total_Fatal_Injuries)) %>% ggplot(aes(x=factor(month), y=dead))+ geom_bar(stat="identity", fill="blue")+coord_flip()+
+  labs(title = "Death on each month for Car Crash",
+       x="month")
+```
+
+

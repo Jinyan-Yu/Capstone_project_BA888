@@ -1,0 +1,81 @@
+---
+title: "Uber with weather"
+author: "Jinyan Yu"
+date: "4/23/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(readr)
+library(tidyverse)
+library(randomForest)
+library(gbm)
+library(rpart.plot)
+library(rpart)
+library(dplyr)
+library(readr)
+library(tidyverse) 
+library(ggplot2) 
+library(ggthemes)
+library(glmnet)
+```
+
+```{r}
+combine <- read.csv("combinedata.csv")
+combine$Crash <- ifelse(combine$rainlevel=="NA",0,1)
+combine$Crash <- replace_na(combine$Crash,0)
+table(combine$Crash)
+colnames(combine)
+``` 
+
+```{r}
+new <- combine %>% select(temperature,apparentTemperature,precipIntensity,precipProbability,humidity,windSpeed,windGust,visibility,temperatureHigh,temperatureLow,apparentTemperatureHigh,apparentTemperatureLow,dewPoint,pressure,windBearing,cloudCover,uvIndex,moonPhase,precipIntensityMax,temperatureMin,temperatureMax,apparentTemperatureMin,apparentTemperatureMax,Crash)
+
+new$train <- sample(c(0, 1), nrow(new), replace = TRUE, prob = c(.3, .7))
+lf_test <- new %>% filter(train == 0)
+lf_train <- new %>% filter(train == 1) 
+lf_train <- lf_train %>% select(-c(train)) 
+lf_test <- lf_test %>% select(-c(train))
+```
+
+```{r}
+f4 <- as.formula(lf_train$Crash~temperature+apparentTemperature+precipIntensity+precipProbability+humidity+windSpeed+windGust+visibility+temperatureHigh+temperatureLow+apparentTemperatureHigh+apparentTemperatureLow+dewPoint+pressure+windBearing+cloudCover+uvIndex+moonPhase+precipIntensityMax+temperatureMin+temperatureMax+apparentTemperatureMin+apparentTemperatureMax)
+
+lf_train$Crash <- as.factor(lf_train$Crash)
+
+fit.tree <- rpart(f4,
+                  lf_train,
+                  control = rpart.control(cp = 0.01))
+
+par(xpd = TRUE)
+plot(fit.tree, compress=TRUE)
+text(fit.tree, use.n=TRUE)
+```
+
+```{r}
+fit_rf <- randomForest(f4,
+                       lf_train,
+                       ntree=100,
+                       do.trace=F)
+
+varImpPlot(fit_rf,
+           main = "Random Forest",
+           pch = 10
+           )
+
+
+
+# yhat_rf_train <- predict(fit_rf, lf_train)
+# mse_rf_train <- mean((yhat_rf_train - lf_train$Crash) ^ 2)
+# mse_rf_train
+# 
+# yhat_rf_test<- predict(fit_rf, lf_test)
+# mse_rf_test <- mean((yhat_rf_test - lf_test$Crash) ^ 2)
+# mse_rf_test
+
+```
+
